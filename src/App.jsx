@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import RecurringMeetings from "./RecurringMeetings";
 
 /* ═══════════════════════════════════════════════════
    DESIGN SYSTEM — Professional Light
@@ -1112,6 +1113,7 @@ const NAV = [
   { id: 0, label: "Hierarchy", desc: "Structure & Roles", icon: "M3 6h18M3 12h12M3 18h8" },
   { id: 1, label: "Members", desc: "Directory & Import", icon: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" },
   { id: 2, label: "Designations", desc: "Roles & Badges", icon: "M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01" },
+  { id: 3, label: "Meetings", desc: "Recurring Events", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
 ];
 
 export default function App() {
@@ -1203,10 +1205,11 @@ export default function App() {
           </div>
 
           {/* Content */}
-          <div className="scroll" style={{ flex: 1, padding: "26px 28px", overflowY: "auto" }}>
+          <div className="scroll" style={{ flex: 1, padding: tab === 3 ? "24px" : "26px 28px", overflowY: "auto", display: "flex", flexDirection: "column" }}>
             {tab === 0 && <HierarchyBuilder />}
             {tab === 1 && <MemberManagement designations={designations} />}
             {tab === 2 && <Designations designations={designations} setDesignations={setDesignations} />}
+            {tab === 3 && <RecurringMeetings />}
           </div>
         </main>
       </div>

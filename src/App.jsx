@@ -162,11 +162,181 @@ function SetupProgress({ hierarchySaved, orgData, levels, designations, members,
   </div>;
 }
 
+/* ─── HIERARCHY WALKTHROUGH ──────────────────────────────────────────────── */
+const WK_CSS = `
+.wk-overlay{position:fixed;inset:0;z-index:400;pointer-events:none}
+.wk-dim{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(2px);z-index:401;animation:fi .25s}
+.wk-spotlight{position:fixed;z-index:402;border-radius:14px;box-shadow:0 0 0 9999px rgba(15,23,42,.52);pointer-events:none;transition:all .35s cubic-bezier(.16,1,.3,1)}
+.wk-tooltip{position:fixed;z-index:403;background:#fff;border:1.5px solid var(--border);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.18);padding:24px;width:340px;animation:up .3s cubic-bezier(.16,1,.3,1)}
+.wk-dot{width:8px;height:8px;border-radius:50%;background:var(--s200);transition:background .2s}
+.wk-dot.on{background:var(--blue)}
+`;
+
+const WK_STEPS = [
+  {
+    id: "intro",
+    title: "Welcome to Hierarchy Setup",
+    icon: "M3 6h18M3 12h12M3 18h8",
+    body: "Hierarchy defines how your organization is structured. It determines how regions, chapters, members, and meetings will be organized inside the platform.",
+    sub: [
+      { ico: "M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z", txt: "Controls org units (Regions, Chapters)" },
+      { ico: "M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8z", txt: "Shapes member structure & forms" },
+      { ico: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z", txt: "Determines meeting ownership" },
+    ],
+    preview: ["Super Admin", "Region", "Chapter", "Members"],
+    anchor: "wk-anchor-page",
+    pos: "right",
+  },
+  {
+    id: "templates",
+    title: "Choose Your Structure",
+    icon: "M4 6h16M4 10h16M4 14h16M4 18h16",
+    body: "Select a hierarchy template that matches your networking organization. Most organizations use the Regional Network structure.",
+    sub: [
+      { ico: "M5 13l4 4L19 7", txt: "Regional Network is recommended for most BNI-style orgs" },
+      { ico: "M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z", txt: "You can rename levels after selecting" },
+    ],
+    preview: ["Super Admin", "Region", "Chapter", "Members"],
+    anchor: "wk-anchor-templates",
+    pos: "right",
+  },
+  {
+    id: "preview",
+    title: "Live Preview Panel",
+    icon: "M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z",
+    body: "The preview shows how your organization will look in real life with real-world example names.",
+    sub: [
+      { ico: "M9 12l2 2 4-4", txt: "Updates instantly as you rename levels" },
+      { ico: "M9 12l2 2 4-4", txt: "Regions contain Chapters, Chapters contain Members" },
+    ],
+    preview: ["Super Admin", "North Region", "Delhi Business Circle", "Members"],
+    anchor: "wk-anchor-preview",
+    pos: "left",
+  },
+];
+
+function HierarchyWalkthrough({ onClose }) {
+  const [step, setStep] = useState(0);
+  const [spotRect, setSpotRect] = useState(null);
+  const wkRef = useRef();
+  const current = WK_STEPS[step];
+  const isLast = step === WK_STEPS.length - 1;
+
+  // Compute spotlight rect from anchor element
+  useEffect(() => {
+    const el = document.getElementById(current.anchor);
+    if (el) {
+      const r = el.getBoundingClientRect();
+      setSpotRect({ top: r.top - 8, left: r.left - 8, width: r.width + 16, height: r.height + 16 });
+    } else {
+      setSpotRect(null);
+    }
+  }, [step]);
+
+  // Position tooltip relative to spotlight
+  const tooltipStyle = (() => {
+    if (!spotRect) return { top: "50%", left: "50%", transform: "translate(-50%,-50%)" };
+    const vw = window.innerWidth, vh = window.innerHeight;
+    if (current.pos === "right") {
+      const left = spotRect.left + spotRect.width + 18;
+      const top = Math.min(spotRect.top, vh - 420);
+      return { top: Math.max(16, top), left: Math.min(left, vw - 360) };
+    } else {
+      const left = spotRect.left - 358;
+      const top = Math.min(spotRect.top, vh - 420);
+      return { top: Math.max(16, top), left: Math.max(16, left) };
+    }
+  })();
+
+  const prev = () => setStep(s => Math.max(0, s - 1));
+  const next = () => { if (isLast) { onClose(); } else setStep(s => s + 1); };
+
+  return <>
+    <style>{WK_CSS}</style>
+    {/* dim */}
+    <div className="wk-dim" onClick={onClose} />
+    {/* spotlight */}
+    {spotRect && <div className="wk-spotlight" style={{ top: spotRect.top, left: spotRect.left, width: spotRect.width, height: spotRect.height }} />}
+    {/* tooltip */}
+    <div className="wk-tooltip" style={tooltipStyle} ref={wkRef}>
+      {/* header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--navy)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+          <Ic d={current.icon} size={17} stroke="#fff" sw={1.8} />
+        </div>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "var(--navy)", letterSpacing: "-.01em", lineHeight: 1 }}>{current.title}</div>
+          <div style={{ fontSize: 11, color: "var(--s400)", marginTop: 3, fontFamily: "var(--mono)" }}>Step {step + 1} of {WK_STEPS.length}</div>
+        </div>
+        <button onClick={onClose} style={{ marginLeft: "auto", background: "none", border: "none", cursor: "pointer", color: "var(--s400)", fontSize: 20, lineHeight: 1, padding: 4 }}>×</button>
+      </div>
+
+      {/* body */}
+      <p style={{ fontSize: 13.5, color: "var(--s700)", lineHeight: 1.65, marginBottom: 14 }}>{current.body}</p>
+
+      {/* preview chain */}
+      <div style={{ background: "var(--s50)", border: "1.5px solid var(--border)", borderRadius: 10, padding: "12px 16px", marginBottom: 14 }}>
+        <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--s400)", letterSpacing: ".07em", textTransform: "uppercase", marginBottom: 9 }}>Example</div>
+        {current.preview.map((n, i, arr) => (
+          <div key={i}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: i === 0 ? "var(--navy)" : i === arr.length - 1 ? "var(--s300)" : "var(--blue)" }} />
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: i === 0 ? "var(--navy)" : i === arr.length - 1 ? "var(--s400)" : "var(--s700)" }}>{n}</span>
+            </div>
+            {i < arr.length - 1 && <div style={{ width: 1, height: 12, background: "var(--border)", marginLeft: 3 }} />}
+          </div>
+        ))}
+      </div>
+
+      {/* bullet points */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 7, marginBottom: 18 }}>
+        {current.sub.map((s, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 9, fontSize: 12.5, color: "var(--s600)", lineHeight: 1.5 }}>
+            <div style={{ width: 20, height: 20, borderRadius: 6, background: "var(--blue-lt)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: 1 }}>
+              <Ic d={s.ico} size={11} stroke="var(--blue)" sw={2} />
+            </div>
+            {s.txt}
+          </div>
+        ))}
+      </div>
+
+      {/* progress + nav */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: 5 }}>
+          {WK_STEPS.map((_, i) => <div key={i} className={`wk-dot${i === step ? " on" : ""}`} />)}
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          {step > 0 && <button className="bs" style={{ padding: "8px 16px", fontSize: 13 }} onClick={prev}>← Back</button>}
+          <button className="bp" style={{ padding: "8px 18px", fontSize: 13 }} onClick={next}>
+            {isLast ? "Finish Guide ✓" : "Next →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  </>;
+}
+
 /* ─── PAGE 1: HIERARCHY ──────────────────────────────────────────────────── */
 function HierarchyPage({ levels, setLevels, onSave, toast }) {
   const [tplId, setTplId] = useState(null);
   const [names, setNames] = useState([]); // editable level names
   const [saved, setSaved] = useState(false);
+  // walkthrough
+  const [showGuide, setShowGuide] = useState(true);
+  const [hasSeenGuide, setHasSeenGuide] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const helpRef = useRef();
+
+  // Close guide handler
+  const closeGuide = () => { setShowGuide(false); setHasSeenGuide(true); };
+  const openGuide = () => { setShowGuide(true); setHelpOpen(false); };
+
+  // Close help dropdown when clicking outside
+  useEffect(() => {
+    const h = (e) => { if (helpRef.current && !helpRef.current.contains(e.target)) setHelpOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
   const pickTemplate = (tpl) => {
     setTplId(tpl.id);
@@ -183,11 +353,8 @@ function HierarchyPage({ levels, setLevels, onSave, toast }) {
     toast("Hierarchy structure saved successfully.", "good");
   };
 
-  // preview nodes
-  const previewNodes = ["Super Admin", ...names.map(n => n || "—"), "Members"];
   const levelNames = ["Super Admin", ...names.map(n => n.trim() || "—"), "Members"];
 
-  // real example (prefix first editable level with "North ", last with "Delhi ")
   const exampleNodes = ["Super Admin",
     ...names.map((n, i) => {
       const base = n.trim() || `Level ${i + 2}`;
@@ -197,13 +364,37 @@ function HierarchyPage({ levels, setLevels, onSave, toast }) {
     }),
     "Members"];
 
-  return <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, alignItems: "start" }}>
+  return <div id="wk-anchor-page" style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20, alignItems: "start" }}>
     {/* LEFT */}
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* Template Selector */}
-      <div className="card au" style={{ padding: "22px 24px" }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "var(--s400)", letterSpacing: ".07em", textTransform: "uppercase", marginBottom: 4 }}>Select Hierarchy Template</div>
+      {/* Walkthrough overlay — shown on first load, and whenever Help → Restart Guide is clicked */}
+      {showGuide && <HierarchyWalkthrough onClose={closeGuide} />}
+
+      {/* Template Selector — Help button row */}
+      <div id="wk-anchor-templates" className="card au" style={{ padding: "22px 24px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--s400)", letterSpacing: ".07em", textTransform: "uppercase" }}>Select Hierarchy Template</div>
+          {/* Help button */}
+          <div style={{ position: "relative" }} ref={helpRef}>
+            <button onClick={() => setHelpOpen(o => !o)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", background: "var(--white)", border: "1.5px solid var(--border)", borderRadius: 8, cursor: "pointer", fontSize: 12.5, fontWeight: 600, color: "var(--s600)", fontFamily: "var(--font)", transition: "all .15s" }} onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--blue)"; e.currentTarget.style.color = "var(--blue)"; }} onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--s600)"; }}>
+              <Ic d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z" size={14} stroke="currentColor" />
+              Help
+            </button>
+            {helpOpen && (
+              <div style={{ position: "absolute", right: 0, top: "calc(100% + 6px)", background: "var(--white)", border: "1.5px solid var(--border)", borderRadius: 10, boxShadow: "0 8px 24px rgba(0,0,0,.1)", minWidth: 190, zIndex: 100, overflow: "hidden", animation: "up .18s ease" }}>
+                <button onClick={openGuide} style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "11px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--s700)", fontFamily: "var(--font)", borderBottom: "1px solid var(--border)", textAlign: "left" }} onMouseEnter={e => e.currentTarget.style.background = "var(--s50)"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                  <Ic d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" size={14} stroke="var(--blue)" />
+                  Restart Guide
+                </button>
+                <button onClick={() => { setHelpOpen(false); toast("Hierarchy defines your org structure — it controls all other modules.", "ok"); }} style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", padding: "11px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, color: "var(--s600)", fontFamily: "var(--font)", textAlign: "left" }} onMouseEnter={e => e.currentTarget.style.background = "var(--s50)"} onMouseLeave={e => e.currentTarget.style.background = "none"}>
+                  <Ic d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" size={14} stroke="var(--s500)" />
+                  View Explanation
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
         <div style={{ fontSize: 13, color: "var(--s600)", marginBottom: 18 }}>Choose the structure that best fits your organization</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
           {TEMPLATES.map(tpl => (
@@ -269,7 +460,7 @@ function HierarchyPage({ levels, setLevels, onSave, toast }) {
     <div style={{ position: "sticky", top: 20, display: "flex", flexDirection: "column", gap: 14 }}>
 
       {/* Live Preview */}
-      <div className="card au" style={{ padding: "20px 22px" }}>
+      <div id="wk-anchor-preview" className="card au" style={{ padding: "20px 22px" }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: "var(--s400)", letterSpacing: ".07em", textTransform: "uppercase", marginBottom: 2 }}>Live Preview</div>
         <div style={{ fontSize: 11.5, color: "var(--s400)", marginBottom: 16 }}>Real-world example</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
@@ -307,7 +498,7 @@ function HierarchyPage({ levels, setLevels, onSave, toast }) {
 
       <div style={{ padding: "12px 16px", borderRadius: 10, background: "var(--s50)", border: "1.5px solid var(--border)" }}>
         <div style={{ fontSize: 11.5, color: "var(--s500)", lineHeight: "1.6" }}>
-          <strong style={{ color: "var(--s700)" }}>💡 Tip</strong><br />
+          <strong style={{ color: "var(--s700)" }}>💡 Info</strong><br />
           After saving, all other modules—Org Structure, Members, Designations—will automatically adapt to this hierarchy.
         </div>
       </div>
